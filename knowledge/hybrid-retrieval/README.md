@@ -76,20 +76,16 @@ You need two API keys in `.env`:
 ## Where these recommendations come from
 
 - **`bm25s` over `rank_bm25`.** The `bm25s` benchmark reports ~500x speedup over `rank_bm25` while staying pure Python and pip-installable ([bm25s GitHub](https://github.com/xhluca/bm25s)). For a tutorial corpus you would not notice, but the persistence story (`save` / `load` with the corpus, optional memory mapping) is materially cleaner.
-- **`text-embedding-3-small` as the default.** It sits within a point of `text-embedding-3-large` on MTEB at 5x lower cost, and a recent 25-config Vectara study found chunking configuration matters as much or more than the embedding model itself ([Premai chunking benchmark 2026](https://blog.premai.io/rag-chunking-strategies-the-2026-benchmark-guide/)). Spending the optimization budget on the pipeline beats spending it on a marginally better embedding model.
+- **`text-embedding-3-small` as the default.** OpenAI's announcement reports 62.3 on MTEB for `text-embedding-3-small` versus 64.6 for `text-embedding-3-large`, at roughly 6.5x lower cost ($0.02 vs $0.13 per 1M tokens) ([OpenAI: new embedding models](https://openai.com/index/new-embedding-models-and-api-updates/)). For a tutorial baseline that gets fused with BM25 and reranked anyway, a 2-point MTEB gap is well within the noise that the rest of the pipeline contributes. Spend the optimization budget on retrieval design, not on a marginally better embedding model.
 - **RRF with k=60.** The 2009 paper that introduced it called it "simple but effective" and twelve years of follow-up work have not unseated it ([Cormack et al., SIGIR 2009](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf)). Newer "learned" fusion methods exist but require training data the tutorial doesn't need.
 - **Cohere `rerank-v4.0-fast` over alternatives.** Top of public reranker benchmarks in 2026, generous free tier, single API call, no model to host ([Cohere Rerank docs](https://docs.cohere.com/docs/rerank-overview)). The open-weight alternative I would mention to viewers who want to ship offline is BGE Reranker v2-m3 ([BGE Reranker on HF](https://huggingface.co/BAAI/bge-reranker-v2-m3)).
 - **The four-stage pipeline order.** "Start with hybrid retrieval, not dense-only. The extra complexity is worth it; you'll end up adding BM25 later anyway after the first major hallucination incident" ([Supermemory hybrid search guide, April 2026](https://supermemory.ai/blog/hybrid-search-guide/)).
 
 ## FAQ
 
-### Why FiQA and not my own data?
+### Why the FiQA dataset?
 
 FiQA is a published benchmark with real qrels, so you can compute honest NDCG@10 and compare against public numbers. Your own data would be more relatable but you would have no ground truth, so you would be measuring vibes. **For learning the pipeline, you want hard numbers.** Once you trust the pipeline, point it at your own data. A natural follow-up is generating synthetic queries against your real corpus and using LLM-as-judge for relevance, which is how production teams actually build evals.
-
-### Why not GraphRAG?
-
-GraphRAG wins on broad thematic queries ("what are the recurring patterns across these interviews") because community summaries are built for that. It loses on indexing cost, freshness, and the simpler queries this tutorial focuses on. For a long deep-dive on that tradeoff, see the comparison docs in [`knowledge/agentic-rag/docs/`](../agentic-rag/docs/).
 
 ### Why not a vector database?
 
